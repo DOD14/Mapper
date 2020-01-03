@@ -7,15 +7,21 @@ public class ContactPlane : MonoBehaviour
 {
     public float strike = 0;
     public float dip = 0;
+
     public Canvas canvas;
     public GameObject pointerSphere;
+    public GameObject line;
 
     InputField heightInputField;
+    Transform structContours;
 
     private void Awake()
     {
         heightInputField = canvas.GetComponentInChildren<InputField>();
         heightInputField.gameObject.SetActive(false);
+
+        structContours = this.GetComponentInChildren<StructureContours>().gameObject.transform;
+        Debug.Log(structContours.gameObject.name);
         pointerSphere.gameObject.SetActive(false);
     }
 
@@ -24,7 +30,7 @@ public class ContactPlane : MonoBehaviour
         this.transform.rotation = Quaternion.Euler(0f, strike, -dip);
     }
 
-    void RaycastClick()
+    private void RaycastClick()
     {
         if (!heightInputField.gameObject.activeSelf && Input.GetMouseButton(0))
         {
@@ -41,11 +47,12 @@ public class ContactPlane : MonoBehaviour
                 pointerSphere.transform.SetParent(this.transform);
 
                 Debug.Log("[+] hit.point = " + hit.point);
+                ContourThroughPoint(hit.point);
             }
         }
     }
 
-    public void PositionPlane()
+    public void PositionPlaneFromPointHeight()
     {
         heightInputField.gameObject.SetActive(false);
         Vector3 displacement = (Vector3.up * (float.Parse(heightInputField.text) - pointerSphere.transform.position.y));
@@ -53,6 +60,36 @@ public class ContactPlane : MonoBehaviour
         this.transform.position += displacement;
     }
 
+    private void ContourThroughPoint(Vector3 point)
+    {
+        GameObject contour = Instantiate(line, structContours);
+        LineRenderer lineRenderer = contour.GetComponent<LineRenderer>();
+        lineRenderer.SetPosition(0, point+ (5-point.z)*contour.transform.forward);
+        lineRenderer.SetPosition(1, point+ (-5-point.z)*contour.transform.forward);
+
+        ExtrapolateContour(lineRenderer, 1, 5);
+    }
+
+    private void ExtrapolateContour(LineRenderer contourLine, float spacing, int number)
+    {
+        for(int i = 1; i<= number; i++)
+        {
+            GameObject left = Instantiate(line, structContours);
+            LineRenderer lineRenderer= left.GetComponent<LineRenderer>();
+            lineRenderer.SetPosition(0, contourLine.GetPosition(0)+i*spacing*contourLine.gameObject.transform.right);
+            lineRenderer.SetPosition(1, contourLine.GetPosition(1) + i *spacing* contourLine.gameObject.transform.right);
+
+            GameObject right = Instantiate(line, structContours);
+            lineRenderer = right.GetComponent<LineRenderer>();
+            lineRenderer.SetPosition(0, contourLine.GetPosition(0) - i * spacing * contourLine.gameObject.transform.right);
+            lineRenderer.SetPosition(1, contourLine.GetPosition(1) - i * spacing * contourLine.gameObject.transform.right);
+        }
+    }
+
+    private void Start()
+    {
+
+    }
 
     void Update()
     {
@@ -61,4 +98,5 @@ public class ContactPlane : MonoBehaviour
     }
 }
 //instantiate pointerSphere
-//structure contours 
+//structure contours: create function; ensure structure contours do not go beyond plane
+//comment and clean up
